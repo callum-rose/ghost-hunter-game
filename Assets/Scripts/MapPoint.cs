@@ -8,9 +8,9 @@ public struct MapPoint
     public Vector2 Position { get { return new Vector2(PositionXYZ.x, PositionXYZ.z); } }
     public float Height { get { return PositionXYZ.y; } }
 
-    public MapPoint(Vector2 position)
+    public MapPoint(Vector3 position)
     {
-        PositionXYZ = new Vector3(position.x, 0, position.y);
+        PositionXYZ = position;
     }
 
     public MapPoint(Vector2 position, float height)

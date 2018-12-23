@@ -4,13 +4,14 @@ using System.Linq;
 using CustomExtensions;
 using TMPro;
 
-public class Map : Singleton<Map> 
+[RequireComponent(typeof(TerrainMeshGenerator))]
+public class Map : Singleton<Map>, IInitialisable
 {
     // the spacing between each point on the map
     [SerializeField] float mapFidelity = 1;
     // point defining the boundary of the map
     [SerializeField] List<Vector2> boundaryPoints;
-
+    
     [SerializeField] bool drawGizmos;
 
     // list of all the points inside the map
@@ -26,19 +27,23 @@ public class Map : Singleton<Map>
         }
     }
 
-    // map container transform
-    Transform mapTrans;
     // transforms of the colliders used for inside / outside map testing
     List<Transform> boundaryTransforms;
     // physics layer of the boundary colliders
     const int physicsLayer = 9;
-    
+    // generates the terrain mesh
+    TerrainMeshGenerator terrainMeshGenerator;
+
     void Awake()
     {
-        CreateMap();
+        Init();
+    }
 
+    public void Init()
+    { 
         UpdateBoundaryCollider();
         CreateContainedGrid();
+        GenerateTerrain();
     }
 
     public bool Contains(Vector2 point)
@@ -57,10 +62,11 @@ public class Map : Singleton<Map>
         return hits.Length % 2 == 1;
     }
 
-    void CreateMap()
+    void GenerateTerrain()
     {
-        mapTrans = new GameObject("Map").transform;
-        mapTrans.position = Vector3.zero;
+        terrainMeshGenerator = gameObject.GetComponent<TerrainMeshGenerator>();
+        terrainMeshGenerator.Init();
+        terrainMeshGenerator.Generate(MapPointsArr);
     }
 
     void UpdateBoundaryCollider()
@@ -91,7 +97,7 @@ public class Map : Singleton<Map>
 
         // create child edge gameobject
         GameObject edgeObj = new GameObject("Edge_" + vertexIndex);
-        edgeObj.transform.SetParent(mapTrans);
+        edgeObj.transform.SetParent(transform);
         edgeObj.layer = physicsLayer;
 
         Vector3 point0 = boundaryPoints[vertexIndex].XY2XZ();
@@ -117,7 +123,7 @@ public class Map : Singleton<Map>
     {
         // create child corner gameobject
         GameObject cornerObj = new GameObject("Corner_" + vertexIndex);
-        cornerObj.transform.SetParent(mapTrans);
+        cornerObj.transform.SetParent(transform);
         cornerObj.layer = physicsLayer;
 
         Vector3 vertexPos = boundaryPoints[vertexIndex].XY2XZ();
@@ -149,7 +155,7 @@ public class Map : Singleton<Map>
                 Vector2 point = new Vector2(x, y);
                 if (Contains(point))
                 {
-                    MapPoint m = new MapPoint(point);
+                    MapPoint m = new MapPoint(point, x * y / 10);
                     m_mapPointsList.Add(m);
                 }
             }
@@ -171,7 +177,7 @@ public class Map : Singleton<Map>
                 foreach (var mapPoint in m_mapPointsList)
                 {
                     Gizmos.color = Color.blue;
-                    Gizmos.DrawSphere(mapPoint.PositionXYZ, mapFidelity / 3);
+                    Gizmos.DrawSphere(mapPoint.PositionXYZ, mapFidelity / 5);
                 }
             }
         }

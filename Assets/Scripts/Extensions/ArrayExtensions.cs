@@ -32,5 +32,24 @@ namespace CustomExtensions
         {
             return index >= 0 && index < array.Length;
         }
+
+        public static bool HasIndex<T>(this T[,] array, int index0, int index1)
+        {
+            bool hasD0Index = index0 >= 0 && index0 < array.GetLength(0);
+            bool hasD1Index = index1 >= 0 && index1 < array.GetLength(1);
+
+            return hasD0Index && hasD1Index;
+        }
+
+        /// <summary>
+        /// Return the index of an element in this array.
+        /// </summary>
+        public static int IndexOf<T>(this T[] array, T item)
+        {
+            for (int i = 0; i < array.Length; i++)
+                if (item.Equals(array[i]))
+                    return i;
+            return -1;
+        }
     }
 }
