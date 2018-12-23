@@ -170,19 +170,10 @@ public class Map : Singleton<Map>
             {
                 foreach (var mapPoint in m_mapPointsList)
                 {
+                    Gizmos.color = Color.blue;
+                    Gizmos.DrawSphere(mapPoint.PositionXYZ, mapFidelity / 3);
                 }
             }
         }
-    }
-}
-
-[System.Serializable]
-public struct MapPoint
-{
-    public Vector2 Position { get; private set; }
-
-    public MapPoint(Vector2 position)
-    {
-        Position = position;
     }
 }

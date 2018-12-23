@@ -27,5 +27,10 @@ namespace CustomExtensions
             int index = UnityEngine.Random.Range(0, array.Length);
             return array[index];
         }
+
+        public static bool HasIndex<T>(this T[] array, int index)
+        {
+            return index >= 0 && index < array.Length;
+        }
     }
 }

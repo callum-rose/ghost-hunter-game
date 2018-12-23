@@ -2,7 +2,7 @@
 using System.Collections;
 using CustomExtensions;
 
-public class GhostSpawnManager : MonoBehaviour {
+public class GhostSpawnManager : MonoBehaviour, IInitialisable {
 
     [SerializeField] GameObject ghostPrefab;
 

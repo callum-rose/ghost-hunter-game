@@ -2,11 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GhostManager : MonoBehaviour {
+public class GhostManager : Singleton<GhostManager>, IInitialisable {
 
-    [SerializeField] GameObject ghostPrefab;
+    Ghost[] activeGhostArr;
 
-    GameObject[] activeGhostArr;
+    public delegate void GhostEvent(Ghost[] ghostArr);
+    public static event GhostEvent OnGhostsUpdated;
 
     void Start()
     {
@@ -24,16 +25,21 @@ public class GhostManager : MonoBehaviour {
 
     void OnDisable()
     {
-        GhostSpawnManager.OnGhostSpawn += OnGhostSpawned;
+        GhostSpawnManager.OnGhostSpawn -= OnGhostSpawned;
     }
 
-    void OnDestroy()
+    protected override void OnDestroy()
     {
-        GhostSpawnManager.OnGhostSpawn += OnGhostSpawned;
+        base.OnDestroy();
+
+        GhostSpawnManager.OnGhostSpawn -= OnGhostSpawned;
     }
 
     void OnGhostSpawned()
     {
-        //activeGhostArr = GameObject.FindGameObjectsWithTag("Ghost");
+        activeGhostArr = FindObjectsOfType<Ghost>();
+
+        if (OnGhostsUpdated != null)
+            OnGhostsUpdated(activeGhostArr);
     }
 }

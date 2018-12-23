@@ -6,7 +6,10 @@ public class PlayerLocation : MonoBehaviour
     [SerializeField] bool doSpoofLocation;
     [SerializeField] Vector2 spoofLocationVector;
 
-    public Vector2 Location { get { return transform.position.XZ2XY(); } }
+    Vector2 Location { get { return transform.position.XZ2XY(); } }
+
+    public delegate void PlayerLocationEvent(Vector2 position);
+    public static event PlayerLocationEvent OnPlayerMoved;
 
     void OnEnable()
     {
@@ -34,6 +37,9 @@ public class PlayerLocation : MonoBehaviour
     void Move(Vector3 position)
     {
         transform.position = position;
+
+        if (OnPlayerMoved != null)
+            OnPlayerMoved(Location);
     }
 
     void OnLocationUpdate(LocationInfo locationInfo)

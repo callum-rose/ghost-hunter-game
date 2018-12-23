@@ -1,7 +1,9 @@
 ﻿using System;
-using System.Collections;
 using System.Diagnostics;
 using System.Reflection;
+using System.Linq;
+using System.Collections.Generic;
+using System.Text;
 
 public static class Logger {
 
@@ -28,29 +30,24 @@ public static class Logger {
         Write(" ERROR -> " + message);
     }
 
-    public static void WriteEnumerable (IEnumerable enumerable)
+    public static void WriteEnumerable<T> (IEnumerable<T> enumerable)
     {
-        string enumerableString = "[";
-        foreach (var item in enumerable)
-        {
-            enumerableString += item + ",";
-        }
-        enumerableString = enumerableString.Remove(enumerableString.Length - 1);
-        enumerableString += "]";
-
-        Write(enumerableString);
+        WriteEnumerable("", enumerable);
     }
 
-    public static void WriteEnumerable(object message, IEnumerable enumerable)
+    public static void WriteEnumerable<T>(object message, IEnumerable<T> enumerable)
     {
-        string enumerableString = "[";
-        foreach (var item in enumerable)
-        {
-            enumerableString += item + ",";
-        }
-        enumerableString = enumerableString.Remove(enumerableString.Length - 1);
-        enumerableString += "]";
+        string startString = "L:" + enumerable.Count() + " -> [";
 
-        Write(message + enumerableString);
+        StringBuilder sb = new StringBuilder(startString);
+
+        foreach (var item in enumerable)
+            sb.Append(item + ", ");
+
+        // remove last comma+space
+        sb.Remove(sb.Length - 2, 2);
+        sb.Append("]");
+
+        Write(message + sb.ToString());
     }
 }
