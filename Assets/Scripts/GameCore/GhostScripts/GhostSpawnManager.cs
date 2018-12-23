@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using CustomExtensions;
+using Utils;
 
 public class GhostSpawnManager : MonoBehaviour, IInitialisable {
 
@@ -24,7 +25,7 @@ public class GhostSpawnManager : MonoBehaviour, IInitialisable {
 
     public void Init()
     {
-        spawnCount = TimeManager.Seconds / spawnIntervalDuration;
+        spawnCount = TimeUtil.Seconds / spawnIntervalDuration;
 
         StartCoroutine(SpawnRoutine());
     }
@@ -55,14 +56,14 @@ public class GhostSpawnManager : MonoBehaviour, IInitialisable {
         if (OnGhostSpawn != null)
             OnGhostSpawn();
 
-        Logger.Write("Spawned ghost at " + position);
+        LogUtil.Write("Spawned ghost at " + position);
     }
 
     bool ShouldSpawn()
     {
-        if (TimeManager.Seconds / spawnIntervalDuration > spawnCount)
+        if (TimeUtil.Seconds / spawnIntervalDuration > spawnCount)
         {
-            spawnCount = TimeManager.Seconds / spawnIntervalDuration;
+            spawnCount = TimeUtil.Seconds / spawnIntervalDuration;
             return true;
         }
         return false;

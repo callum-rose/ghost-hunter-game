@@ -1,17 +1,20 @@
-﻿using System.Collections.Generic;
+﻿#define TEST_NOT_EDITOR
+
+using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using CustomExtensions;
-using TMPro;
+using Utils;
 
 [RequireComponent(typeof(TerrainMeshGenerator))]
-public class Map : Singleton<Map>, IInitialisable
+public class Map : Singleton<Map>, IInitialisable, ISaveAndLoadable
 {
     // the spacing between each point on the map
     [SerializeField] float mapFidelity = 1;
     // point defining the boundary of the map
     [SerializeField] List<Vector2> boundaryPoints;
-    
+    [SerializeField] Gradient colorGradient;
+
     [SerializeField] bool drawGizmos;
 
     // list of all the points inside the map
@@ -40,9 +43,17 @@ public class Map : Singleton<Map>, IInitialisable
     }
 
     public void Init()
-    { 
+    {
+#if !(UNITY_EDITOR && !TEST_NOT_EDITOR)
+        LoadData();
+#endif
+
+#if UNITY_EDITOR && !TEST_NOT_EDITOR
         UpdateBoundaryCollider();
         CreateContainedGrid();
+        SaveData();
+#endif
+
         GenerateTerrain();
     }
 
@@ -62,11 +73,60 @@ public class Map : Singleton<Map>, IInitialisable
         return hits.Length % 2 == 1;
     }
 
+#region ISaveAndLoadable
+
+    public void SaveData()
+    {
+        MapData mapData = new MapData
+        {
+            mapFidelity = mapFidelity,
+            boundaryPoints = boundaryPoints,
+            mapPointsList = m_mapPointsList,
+            colorGradient = colorGradient
+        };
+
+        FileUtil.SaveToResources("map_data", mapData);
+    }
+
+    public void LoadData()
+    {
+        MapData mapData = FileUtil.LoadFromResources<MapData>("map_data");
+
+        if (mapData == null)
+        {
+            OnLoadDataFailed();
+            return;
+        }
+
+        mapFidelity = mapData.mapFidelity;
+        boundaryPoints = mapData.boundaryPoints;
+        m_mapPointsList = mapData.mapPointsList;
+        colorGradient = mapData.colorGradient;
+    }
+
+    public void OnLoadDataFailed()
+    {
+        UpdateBoundaryCollider();
+
+        CreateContainedGrid();
+        SaveData();
+
+        LogUtil.WriteWarning("Data failed to load.");
+    }
+
+    #endregion
+
     void GenerateTerrain()
     {
         terrainMeshGenerator = gameObject.GetComponent<TerrainMeshGenerator>();
         terrainMeshGenerator.Init();
+
+#if UNITY_EDITOR && !TEST_NOT_EDITOR
         terrainMeshGenerator.Generate(MapPointsArr);
+        terrainMeshGenerator.SaveData();
+#else
+        terrainMeshGenerator.LoadData();
+#endif
     }
 
     void UpdateBoundaryCollider()
@@ -155,7 +215,9 @@ public class Map : Singleton<Map>, IInitialisable
                 Vector2 point = new Vector2(x, y);
                 if (Contains(point))
                 {
-                    MapPoint m = new MapPoint(point, x * y / 10);
+                    float height = Mathf.PerlinNoise(x / 5, y / 5);
+                    Color pointColour = colorGradient.Evaluate(height);
+                    MapPoint m = new MapPoint(point, height, pointColour);
                     m_mapPointsList.Add(m);
                 }
             }

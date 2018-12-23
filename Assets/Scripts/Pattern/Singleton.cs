@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using Utils;
 
 public class Singleton<T> : MonoBehaviour where T : MonoBehaviour
 {
@@ -15,7 +16,7 @@ public class Singleton<T> : MonoBehaviour where T : MonoBehaviour
 			{
                 if (isBeingDestroyed)
                 {
-                    Logger.WriteWarning("[Singleton] Attempted to access singleton");
+                    LogUtil.WriteWarning("[Singleton] Attempted to access singleton");
                     return null;
                 }
 				if (_instance == null)
@@ -24,7 +25,7 @@ public class Singleton<T> : MonoBehaviour where T : MonoBehaviour
 
 					if ( FindObjectsOfType(typeof(T)).Length > 1 )
 					{
-						Logger.WriteError("[Singleton] Something went really wrong " +
+						LogUtil.WriteError("[Singleton] Something went really wrong " +
 							" - there should never be more than 1 singleton!" +
 							" Reopening the scene might fix it.");
 						return _instance;
@@ -38,7 +39,7 @@ public class Singleton<T> : MonoBehaviour where T : MonoBehaviour
 
 						DontDestroyOnLoad(singleton);
 
-						Logger.Write("[Singleton] An instance of " + typeof(T) + 
+						LogUtil.Write("[Singleton] An instance of " + typeof(T) + 
 							" is needed in the scene, so '" + singleton +
 							"' was created with DontDestroyOnLoad.");
 					}

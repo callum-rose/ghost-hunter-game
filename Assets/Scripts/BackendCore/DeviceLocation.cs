@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using UnityEngine;
+using Utils;
 
 public class DeviceLocation : MonoBehaviour
 {
@@ -18,7 +19,7 @@ public class DeviceLocation : MonoBehaviour
         if (Input.location.isEnabledByUser)
             StartCoroutine(CheckLocationRoutine());
         else
-            Logger.Write("Location services are not enabled by the user.");
+            LogUtil.Write("Location services are not enabled by the user.");
     }
 
     IEnumerator CheckLocationRoutine()
@@ -31,35 +32,35 @@ public class DeviceLocation : MonoBehaviour
             {
                 // fire data in event
                 OnLocationDataIn.Invoke(Input.location.lastData);
-                Logger.Write("Firing location data event");
+                LogUtil.Write("Firing location data event");
             }
             else
-                Logger.Write("Nothing subscribed to location data event");
+                LogUtil.Write("Nothing subscribed to location data event");
 
             yield return new WaitForSeconds(5);
         }
 
         Input.location.Stop();
-        Logger.Write("Stopping location service");
+        LogUtil.Write("Stopping location service");
     }
 
     IEnumerator InitialiseLocationServiceRoutine()
     {
-        Logger.Write("Initialising location service.");
+        LogUtil.Write("Initialising location service.");
 
         Input.location.Start();
 
         long maxWaitSeconds = 20;
-        long startSeconds = TimeManager.Seconds;
+        long startSeconds = TimeUtil.Seconds;
 
         while (Input.location.status == LocationServiceStatus.Initializing
-               && TimeManager.GetSecondsSince(startSeconds) < maxWaitSeconds)
+               && TimeUtil.GetSecondsSince(startSeconds) < maxWaitSeconds)
         {
             // wait for initialisation
             yield return new WaitForSeconds(1);
         }
 
-        Logger.Write("LocationServiceStatus: " + Input.location.status);
+        LogUtil.Write("LocationServiceStatus: " + Input.location.status);
         locationServiceActive = Input.location.status == LocationServiceStatus.Running;
     }
 

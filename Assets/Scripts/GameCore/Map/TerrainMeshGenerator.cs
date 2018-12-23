@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using CustomExtensions;
+using System.Runtime.Serialization;
+using Utils;
 
 [RequireComponent(typeof(MeshRenderer))]
 [RequireComponent(typeof(MeshFilter))]
-public class TerrainMeshGenerator : MonoBehaviour, IInitialisable
+public class TerrainMeshGenerator : MonoBehaviour, IInitialisable, ISaveAndLoadable
 {
     MeshFilter meshFilter;
 
@@ -42,6 +44,7 @@ public class TerrainMeshGenerator : MonoBehaviour, IInitialisable
 
         terrainMesh.vertices = mapData.Select(m => m.PositionXYZ).ToArray();
         terrainMesh.triangles = tris;
+        terrainMesh.colors = mapData.Select(m => m.Colour).ToArray();
 
         terrainMesh.RecalculateNormals();
 
@@ -84,6 +87,53 @@ public class TerrainMeshGenerator : MonoBehaviour, IInitialisable
 
         return formattedMapData;
     }
+
+#region ISaveAndLoadable
+
+    public void SaveData()
+    {
+        Mesh terrainMesh = meshFilter.sharedMesh;
+
+        TerrainMeshData data = new TerrainMeshData
+        {
+            vertices = terrainMesh.vertices,
+            triangles = terrainMesh.triangles,
+            colours = terrainMesh.colors,
+            normals = terrainMesh.normals
+        };
+
+        FileUtil.SaveToResources("terrain_mesh_data", data);
+    }
+
+    public void LoadData()
+    {
+        TerrainMeshData data = FileUtil.LoadFromResources<TerrainMeshData>("terrain_mesh_data");
+
+        if (data == null)
+        {
+            OnLoadDataFailed();
+            return;
+        }
+
+        Mesh loadedMesh = new Mesh
+        {
+            vertices = data.vertices,
+            triangles = data.triangles,
+            colors = data.colours,
+            normals = data.normals
+        };
+
+        meshFilter.sharedMesh = loadedMesh;
+    }
+
+    public void OnLoadDataFailed()
+    {
+        Generate(Map.Instance.MapPointsArr);
+
+        LogUtil.WriteWarning("Data failed to load.");
+    }
+
+#endregion
 
     List<LinkTri> CreateLinkTris(List<MapPointLink> linksList)
     {
@@ -266,7 +316,7 @@ public class TerrainMeshGenerator : MonoBehaviour, IInitialisable
 
             if (points.Length != 3)
             {
-                Logger.WriteError("More than 3 vertices!");
+                LogUtil.WriteError("More than 3 vertices!");
                 throw new System.Exception("More than 3 vertices!");
             }
 
