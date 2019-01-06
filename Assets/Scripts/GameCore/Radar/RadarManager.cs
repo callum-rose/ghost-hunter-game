@@ -15,6 +15,11 @@ public class RadarManager : MonoBehaviour, IInitialisable {
     // link dictionary between the actual ghost and the radar ghost
     Dictionary<Ghost, GameObject> radarGhostsLinkDict;
 
+    void Awake()
+    {
+        ghosts = new Ghost[0];
+    }
+
     void Start()
     {
         Init();

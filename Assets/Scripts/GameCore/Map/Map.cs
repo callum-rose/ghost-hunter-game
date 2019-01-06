@@ -9,14 +9,17 @@ using Utils;
 [RequireComponent(typeof(TerrainMeshGenerator))]
 public class Map : Singleton<Map>, IInitialisable, ISaveAndLoadable
 {
+    public string mapName;
     // the spacing between each point on the map
     [SerializeField] float mapFidelity = 1;
-    // point defining the boundary of the map
-    [SerializeField] List<Vector2> boundaryPoints;
+    // globe coordinates defining the boundary of the map
+    [SerializeField] List<Coordinate> boundaryCoordinates;
     [SerializeField] Gradient colorGradient;
 
     [SerializeField] bool drawGizmos;
 
+    // world space points defining the boundary
+    List<Vector2> m_boundaryPoints;
     // list of all the points inside the map
     List<MapPoint> m_mapPointsList;
 
@@ -31,11 +34,12 @@ public class Map : Singleton<Map>, IInitialisable, ISaveAndLoadable
     }
 
     // transforms of the colliders used for inside / outside map testing
-    List<Transform> boundaryTransforms;
+    List<Transform> m_boundaryTransforms;
     // physics layer of the boundary colliders
-    const int physicsLayer = 9;
+    const int m_physicsLayer = 9;
+
     // generates the terrain mesh
-    TerrainMeshGenerator terrainMeshGenerator;
+    TerrainMeshGenerator m_terrainMeshGenerator;
 
     void Awake()
     {
@@ -44,23 +48,21 @@ public class Map : Singleton<Map>, IInitialisable, ISaveAndLoadable
 
     public void Init()
     {
-#if !(UNITY_EDITOR && !TEST_NOT_EDITOR)
+        StopwatchUtil.Start();
+#if UNITY_EDITOR && !TEST_NOT_EDITOR
+        CreateMapData();
+#else
         LoadData();
 #endif
 
-#if UNITY_EDITOR && !TEST_NOT_EDITOR
-        UpdateBoundaryCollider();
-        CreateContainedGrid();
-        SaveData();
-#endif
-
         GenerateTerrain();
+        StopwatchUtil.Stop();
     }
 
     public bool Contains(Vector2 point)
     {
         // raycast in a random direction
-        RaycastHit[] hits = Physics.RaycastAll(point.XY2XZ(), Random.onUnitSphere.SetY(0), 1000, 1 << physicsLayer);
+        RaycastHit[] hits = Physics.RaycastAll(point.XY2XZ(), Random.onUnitSphere.SetY(0), 100000, 1 << m_physicsLayer);
 
         if (hits.Any(r => r.collider.name.Contains("Corner")))
         {
@@ -80,88 +82,118 @@ public class Map : Singleton<Map>, IInitialisable, ISaveAndLoadable
         MapData mapData = new MapData
         {
             mapFidelity = mapFidelity,
-            boundaryPoints = boundaryPoints,
+            boundaryCoords = boundaryCoordinates,
             mapPointsList = m_mapPointsList,
-            colorGradient = colorGradient
+            colourGradient = colorGradient
         };
 
-        FileUtil.SaveToResources("map_data", mapData);
+        if (string.IsNullOrEmpty(mapName))
+        {
+            LogUtil.WriteWarning("Map name is null or empty. Setting to 'default'");
+            mapName = "default";
+        }
+
+        FileUtil.SaveAsJsonToResources("map_data_" + mapName, mapData);
     }
 
     public void LoadData()
     {
-        MapData mapData = FileUtil.LoadFromResources<MapData>("map_data");
+        if (string.IsNullOrEmpty(mapName))
+        {
+            LogUtil.WriteWarning("Map name is null or empty. Setting to 'default'");
+            mapName = "default";
+        }
 
-        if (mapData == null)
+        MapData mapData = FileUtil.LoadFromResources<MapData>("map_data_" + mapName);
+
+        if (mapData == null || !mapData.CheckPropertiesValid())
         {
             OnLoadDataFailed();
             return;
         }
 
         mapFidelity = mapData.mapFidelity;
-        boundaryPoints = mapData.boundaryPoints;
+        boundaryCoordinates = mapData.boundaryCoords;
         m_mapPointsList = mapData.mapPointsList;
-        colorGradient = mapData.colorGradient;
+        colorGradient = mapData.colourGradient;
+
+        ConvertBoundaryCoords2World();
     }
 
     public void OnLoadDataFailed()
     {
-        UpdateBoundaryCollider();
+        LogUtil.WriteWarning("Data failed to load. Regenerating.");
 
-        CreateContainedGrid();
-        SaveData();
-
-        LogUtil.WriteWarning("Data failed to load.");
+        CreateMapData();
     }
 
-    #endregion
+#endregion
+
+    void CreateMapData()
+    {
+        ConvertBoundaryCoords2World();
+        UpdateBoundaryCollider();
+        CreateContainedGrid();
+        SaveData();
+    }
 
     void GenerateTerrain()
     {
-        terrainMeshGenerator = gameObject.GetComponent<TerrainMeshGenerator>();
-        terrainMeshGenerator.Init();
+        m_terrainMeshGenerator = gameObject.GetComponent<TerrainMeshGenerator>();
+        m_terrainMeshGenerator.Init();
+        m_terrainMeshGenerator.mapName = mapName;
 
 #if UNITY_EDITOR && !TEST_NOT_EDITOR
-        terrainMeshGenerator.Generate(MapPointsArr);
-        terrainMeshGenerator.SaveData();
+        m_terrainMeshGenerator.Generate(MapPointsArr);
 #else
-        terrainMeshGenerator.LoadData();
+        m_terrainMeshGenerator.LoadData();
 #endif
+    }
+
+    void ConvertBoundaryCoords2World()
+    {
+        // convert coordinate to world points
+        var tempPoints = boundaryCoordinates.Select(MercatorUtil.FromGlobeToXY);
+
+        Vector2 minCorner;
+        minCorner.x = tempPoints.Min(v => v.x);
+        minCorner.y = tempPoints.Min(v => v.y);
+
+        m_boundaryPoints = tempPoints.Select(v => v - minCorner).ToList();
     }
 
     void UpdateBoundaryCollider()
     {
-        if (boundaryTransforms != null)
+        if (m_boundaryTransforms != null)
         {
             // clear previous edges
-            foreach (Transform boundaryPart in boundaryTransforms)
+            foreach (Transform boundaryPart in m_boundaryTransforms)
                 Destroy(boundaryPart.gameObject);
 
-            boundaryTransforms.Clear();
+            m_boundaryTransforms.Clear();
         }
         else
         {
-            boundaryTransforms = new List<Transform>();
+            m_boundaryTransforms = new List<Transform>();
         }
         // create boundary
-        for (int v = 0; v < boundaryPoints.Count; v++)
+        for (int v = 0; v < m_boundaryPoints.Count; v++)
         {
-            CreateEdge(v);
-            CreateCorner(v);
+            int vNext = (v + 1) % m_boundaryPoints.Count;
+            Vector3 point0 = m_boundaryPoints[v].XY2XZ();
+            Vector3 point1 = m_boundaryPoints[vNext].XY2XZ();
+
+            CreateEdge(point0, point1);
+            CreateCorner(point0);
         }
     }
 
-    void CreateEdge(int vertexIndex)
+    void CreateEdge(Vector3 point0, Vector3 point1)
     {
-        int nextPointIndex = (vertexIndex + 1) % boundaryPoints.Count;
-
         // create child edge gameobject
-        GameObject edgeObj = new GameObject("Edge_" + vertexIndex);
+        GameObject edgeObj = new GameObject("Edge");
         edgeObj.transform.SetParent(transform);
-        edgeObj.layer = physicsLayer;
-
-        Vector3 point0 = boundaryPoints[vertexIndex].XY2XZ();
-        Vector3 point1 = boundaryPoints[nextPointIndex].XY2XZ();
+        edgeObj.layer = m_physicsLayer;
 
         // find edge parameters
         Vector3 edgeCenter = (point0 + point1) / 2;
@@ -176,25 +208,25 @@ public class Map : Singleton<Map>, IInitialisable, ISaveAndLoadable
         // add collider for raycast testing
         edgeObj.AddComponent<BoxCollider>();
 
-        boundaryTransforms.Add(edgeObj.transform);
+        m_boundaryTransforms.Add(edgeObj.transform);
     }
 
-    void CreateCorner(int vertexIndex)
+    void CreateCorner(Vector3 point)
     {
         // create child corner gameobject
-        GameObject cornerObj = new GameObject("Corner_" + vertexIndex);
+        GameObject cornerObj = new GameObject("Corner");
         cornerObj.transform.SetParent(transform);
-        cornerObj.layer = physicsLayer;
-
-        Vector3 vertexPos = boundaryPoints[vertexIndex].XY2XZ();
-
+        cornerObj.layer = m_physicsLayer;
+        
         // set position
-        cornerObj.transform.position = vertexPos;
+        cornerObj.transform.position = point;
 
         // add collider for raycast testing
         CapsuleCollider cornerCapsuleCollider = cornerObj.AddComponent<CapsuleCollider>();
         cornerCapsuleCollider.radius = 0.05f;
         cornerCapsuleCollider.height = 1.2f;
+
+        m_boundaryTransforms.Add(cornerObj.transform);
     }
 
     void CreateContainedGrid()
@@ -203,10 +235,10 @@ public class Map : Singleton<Map>, IInitialisable, ISaveAndLoadable
 
         // get bounds
         Vector2 minCorner, maxCorner;
-        minCorner.x = boundaryPoints.Min(v => v.x);
-        minCorner.y = boundaryPoints.Min(v => v.y);
-        maxCorner.x = boundaryPoints.Max(v => v.x);
-        maxCorner.y = boundaryPoints.Max(v => v.y);
+        minCorner.x = m_boundaryPoints.Min(v => v.x);
+        minCorner.y = m_boundaryPoints.Min(v => v.y);
+        maxCorner.x = m_boundaryPoints.Max(v => v.x);
+        maxCorner.y = m_boundaryPoints.Max(v => v.y);
 
         for (float y = minCorner.y; y <= maxCorner.y; y += mapFidelity)
         {
@@ -228,14 +260,14 @@ public class Map : Singleton<Map>, IInitialisable, ISaveAndLoadable
     {
         if (drawGizmos)
         {
-            Gizmos.color = Color.red;
-            foreach (var point in boundaryPoints)
-            {
-                Gizmos.DrawSphere(point.XY2XZ(), 0.5f);
-            }
-
             if (Application.isPlaying && m_mapPointsList != null)
             {
+                Gizmos.color = Color.red;
+                foreach (var point in m_boundaryPoints)
+                {
+                    Gizmos.DrawSphere(point.XY2XZ(), 0.5f);
+                }
+
                 foreach (var mapPoint in m_mapPointsList)
                 {
                     Gizmos.color = Color.blue;

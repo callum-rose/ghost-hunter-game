@@ -10,6 +10,8 @@ using Utils;
 [RequireComponent(typeof(MeshFilter))]
 public class TerrainMeshGenerator : MonoBehaviour, IInitialisable, ISaveAndLoadable
 {
+    public string mapName;
+
     MeshFilter meshFilter;
 
     public void Init()
@@ -49,6 +51,8 @@ public class TerrainMeshGenerator : MonoBehaviour, IInitialisable, ISaveAndLoada
         terrainMesh.RecalculateNormals();
 
         meshFilter.mesh = terrainMesh;
+
+        SaveData();
     }
 
     MapPoint?[,] FormatMapData(MapPoint[] mapData)
@@ -92,6 +96,12 @@ public class TerrainMeshGenerator : MonoBehaviour, IInitialisable, ISaveAndLoada
 
     public void SaveData()
     {
+        if (string.IsNullOrEmpty(mapName))
+        {
+            LogUtil.WriteWarning("Map name is null or empty. Setting to 'default'");
+            mapName = "default";
+        }
+
         Mesh terrainMesh = meshFilter.sharedMesh;
 
         TerrainMeshData data = new TerrainMeshData
@@ -102,14 +112,20 @@ public class TerrainMeshGenerator : MonoBehaviour, IInitialisable, ISaveAndLoada
             normals = terrainMesh.normals
         };
 
-        FileUtil.SaveToResources("terrain_mesh_data", data);
+        FileUtil.SaveAsJsonToResources("terrain_mesh_data_" + mapName, data);
     }
 
     public void LoadData()
     {
-        TerrainMeshData data = FileUtil.LoadFromResources<TerrainMeshData>("terrain_mesh_data");
+        if (string.IsNullOrEmpty(mapName))
+        {
+            LogUtil.WriteWarning("Map name is null or empty. Setting to 'default'");
+            mapName = "default";
+        }
 
-        if (data == null)
+        TerrainMeshData data = FileUtil.LoadFromResources<TerrainMeshData>("terrain_mesh_data_" + mapName);
+
+        if (data == null || !data.CheckPropertiesValid())
         {
             OnLoadDataFailed();
             return;
@@ -128,9 +144,9 @@ public class TerrainMeshGenerator : MonoBehaviour, IInitialisable, ISaveAndLoada
 
     public void OnLoadDataFailed()
     {
-        Generate(Map.Instance.MapPointsArr);
+        LogUtil.WriteWarning("Data failed to load. Regenerating");
 
-        LogUtil.WriteWarning("Data failed to load.");
+        Generate(Map.Instance.MapPointsArr);
     }
 
 #endregion

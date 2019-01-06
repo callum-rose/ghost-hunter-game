@@ -1,4 +1,5 @@
-﻿public interface ISaveAndLoadable {
+﻿using UnityEngine;
+public interface ISaveAndLoadable {
 
     void SaveData();
 

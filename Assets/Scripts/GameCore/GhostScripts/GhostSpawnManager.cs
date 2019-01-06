@@ -8,7 +8,7 @@ public class GhostSpawnManager : MonoBehaviour, IInitialisable {
     [SerializeField] GameObject ghostPrefab;
 
     // in seconds
-    public static long spawnIntervalDuration = 1;
+    public static long spawnIntervalDuration = 10;
 
     // in seconds
     long lastSpawnTime;

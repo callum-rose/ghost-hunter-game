@@ -24,23 +24,27 @@ namespace Utils
             // get calling frame
             StackFrame frame = new StackTrace().GetFrame(1);
             MethodBase method = frame.GetMethod();
-            Type type = method.DeclaringType;
+            Type type = method.ReflectedType;
 
             if (m_stopwatchByCallerDict.ContainsKey(method))
             {
                 LogUtil.WriteWarning("Cannot run more than one timer from "
-                + type.Name + "." + method.Name);
+                + type.FullName + "." + method.Name);
                 return;
             }
 
-            CheckTimers();
+            //CheckTimers();
 
             Stopwatch stopwatch = new Stopwatch();
             m_stopwatchByCallerDict.Add(method, stopwatch);
             stopwatch.Start();
         }
 
-        public static void Stop()
+        /// <summary>
+        /// Stops this timer from the calling method. Returns the elapsed millis.
+        /// </summary>
+        /// <param name="suppressLog">If set to <c>true</c> suppress log.</param>
+        public static long Stop(bool suppressLog = false)
         {
             if (!m_initialised)
                 Init();
@@ -48,24 +52,30 @@ namespace Utils
             // get calling frame
             StackFrame frame = new StackTrace().GetFrame(1);
             MethodBase method = frame.GetMethod();
-            Type type = method.DeclaringType;
+            Type type = method.ReflectedType;
 
             if (m_stopwatchByCallerDict.ContainsKey(method))
             {
                 Stopwatch stopwatch = m_stopwatchByCallerDict[method];
                 stopwatch.Stop();
-                LogUtil.Write("Timer started from " + type.Name + "." + method.Name
-                    + " elapsed " + stopwatch.ElapsedMilliseconds + "ms.");
+
+                if (!suppressLog)
+                    LogUtil.Write("Timer started from " + type.FullName + "." + method.Name
+                        + " elapsed " + stopwatch.ElapsedMilliseconds + "ms.");
 
                 m_stopwatchByCallerDict.Remove(method);
-            }
-            else
-            {
-                LogUtil.WriteWarning("No timer has been started from "
-                    + type.Name + "." + method.Name);
+
+                //CheckTimers();
+
+                return stopwatch.ElapsedMilliseconds;
             }
 
-            CheckTimers();
+            LogUtil.WriteWarning("No timer has been started from "
+                + type.Name + "." + method.Name);
+
+            //CheckTimers();
+
+            return -1;
         }
 
         static void CheckTimers()

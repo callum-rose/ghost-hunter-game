@@ -7,9 +7,16 @@ namespace Utils
         public static long Millis { get { return GetCurrentDate().Ticks / TimeSpan.TicksPerMillisecond; } }
         public static long Seconds { get { return GetCurrentDate().Ticks / TimeSpan.TicksPerSecond; } }
 
-        public static DateTime GetDate()
+        public static DateTime CurrentDate { get { return GetCurrentDate(); } }
+
+        public static string GetNiceDateFormat(DateTime dateTime)
         {
-            return GetCurrentDate();
+            return string.Format("{0:dd_MM_yy}", dateTime);
+        }
+
+        public static string GetNiceTimeFormat(DateTime dateTime)
+        {
+            return string.Format("{0:HH:mm:ss}", dateTime);
         }
 
 #if UNITY_EDITOR

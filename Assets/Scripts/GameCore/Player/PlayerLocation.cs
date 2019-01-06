@@ -1,10 +1,12 @@
 ﻿using UnityEngine;
 using CustomExtensions;
+using Utils;
+using DG.Tweening;
 
 public class PlayerLocation : MonoBehaviour 
 {
-    [SerializeField] bool doSpoofLocation;
-    [SerializeField] Vector2 spoofLocationVector;
+    //[SerializeField] bool doSpoofLocation;
+    //[SerializeField] Vector2 spoofLocationVector;
 
     Vector2 Location { get { return transform.position.XZ2XY(); } }
 
@@ -26,26 +28,18 @@ public class PlayerLocation : MonoBehaviour
         DeviceLocation.OnLocationDataIn -= OnLocationUpdate;
     }
 
-    void Update()
+    void Move(Vector2 position)
     {
-        if (doSpoofLocation)
+        transform.DOMove(position.XY2XZ(), 1f).SetEase(Ease.InOutSine).OnUpdate(() =>
         {
-            Move(new Vector3(spoofLocationVector.x, 0, spoofLocationVector.y));
-        }
+            // fire every frame of the tween
+            if (OnPlayerMoved != null)
+                OnPlayerMoved(Location);
+        });
     }
 
-    void Move(Vector3 position)
+    void OnLocationUpdate(Vector2 position)
     {
-        transform.position = position;
-
-        if (OnPlayerMoved != null)
-            OnPlayerMoved(Location);
+        Move(position);
     }
-
-    void OnLocationUpdate(LocationInfo locationInfo)
-    {
-        print(locationInfo.latitude + ", " + locationInfo.longitude);
-    }
-
-
 }

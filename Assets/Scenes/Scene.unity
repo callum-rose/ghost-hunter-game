@@ -146,6 +146,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6f8f648bbe6934d7a9b1f6fde56265d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  doSpoofCoordinates: 0
+  spoofCoordinateX: 0
+  spoofCoordinateY: 0
 --- !u!4 &58556802
 Transform:
   m_ObjectHideFlags: 0
@@ -494,8 +497,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 87671b553ac4649588dea65579df1dde, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  doSpoofLocation: 0
-  spoofLocationVector: {x: 0, y: 0}
 --- !u!1 &1128449918
 GameObject:
   m_ObjectHideFlags: 0
@@ -725,6 +726,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e0c13c4c314054fe28aa58dad68d9f98, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  mapName: 
 --- !u!114 &1551263056
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -736,16 +738,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1be372b5fdec34ed8b7e4bd0ceb07e1a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mapFidelity: 0.5
-  boundaryPoints:
-  - {x: -5.11, y: -2.78}
-  - {x: -1.1, y: 6.99}
-  - {x: 5.18, y: 5.97}
-  - {x: 14, y: 0.53}
-  - {x: 12.22, y: -4.49}
-  - {x: 8.07, y: -3.97}
-  - {x: 4, y: -0.76}
-  - {x: 1.65, y: -3.87}
+  mapName: hyde_park
+  mapFidelity: 20
+  boundaryCoordinates:
+  - latitude: 51.502487
+    longitude: -0.187425
+    altitude: 0
+  - latitude: 51.50983
+    longitude: -0.190773
+    altitude: 0
+  - latitude: 51.51304
+    longitude: -0.158973
+    altitude: 0
+  - latitude: 51.506546
+    longitude: -0.152192
+    altitude: 0
+  - latitude: 51.503433
+    longitude: -0.1529
+    altitude: 0
+  - latitude: 51.501644
+    longitude: -0.181868
+    altitude: 0
   colorGradient:
     serializedVersion: 2
     key0: {r: 0.3372549, g: 0.80286855, b: 0.85882354, a: 1}
@@ -775,7 +788,7 @@ MonoBehaviour:
     m_Mode: 1
     m_NumColorKeys: 5
     m_NumAlphaKeys: 2
-  drawGizmos: 0
+  drawGizmos: 1
 --- !u!4 &1551263057
 Transform:
   m_ObjectHideFlags: 0
@@ -1108,7 +1121,7 @@ Prefab:
     m_Modifications:
     - target: {fileID: 4003825858078374, guid: 10a7d2732198c469e8e1cdd6bd06ad20, type: 2}
       propertyPath: m_LocalPosition.x
-      value: -0.93
+      value: -0.97
       objectReference: {fileID: 0}
     - target: {fileID: 4003825858078374, guid: 10a7d2732198c469e8e1cdd6bd06ad20, type: 2}
       propertyPath: m_LocalPosition.y
@@ -1116,7 +1129,7 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 4003825858078374, guid: 10a7d2732198c469e8e1cdd6bd06ad20, type: 2}
       propertyPath: m_LocalPosition.z
-      value: -0.36
+      value: 0.34
       objectReference: {fileID: 0}
     - target: {fileID: 4003825858078374, guid: 10a7d2732198c469e8e1cdd6bd06ad20, type: 2}
       propertyPath: m_LocalRotation.x

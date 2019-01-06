@@ -1,12 +1,17 @@
 ﻿using System.Collections;
 using UnityEngine;
 using Utils;
+using CustomExtensions;
 
 public class DeviceLocation : MonoBehaviour
 {
-    bool locationServiceActive;
+    [SerializeField] bool doSpoofCoordinates;
+    [SerializeField] [Range(0, 1e-6f)] float spoofCoordinateX, spoofCoordinateY;
 
-    public delegate void LocationEvent(LocationInfo locationInfo);
+    bool locationServiceActive;
+    const float locationUpdateWait = 1;
+
+    public delegate void LocationEvent(Vector2 locationInfo);
     public static event LocationEvent OnLocationDataIn;
 
     void Start()
@@ -16,7 +21,7 @@ public class DeviceLocation : MonoBehaviour
 
     public void Init()
     {
-        if (Input.location.isEnabledByUser)
+        if (doSpoofCoordinates || Input.location.isEnabledByUser)
             StartCoroutine(CheckLocationRoutine());
         else
             LogUtil.Write("Location services are not enabled by the user.");
@@ -24,20 +29,37 @@ public class DeviceLocation : MonoBehaviour
 
     IEnumerator CheckLocationRoutine()
     {
-        yield return StartCoroutine(InitialiseLocationServiceRoutine());
+        if (!doSpoofCoordinates)
+            yield return StartCoroutine(InitialiseLocationServiceRoutine());
+        else
+            LogUtil.Write("Spoofing coordinates");
 
-        while (locationServiceActive && Input.location.isEnabledByUser)
+        while (doSpoofCoordinates || (locationServiceActive && Input.location.isEnabledByUser))
         {
             if (OnLocationDataIn != null)
             {
-                // fire data in event
-                OnLocationDataIn.Invoke(Input.location.lastData);
-                LogUtil.Write("Firing location data event");
+                float lat, lon;
+                if (doSpoofCoordinates)
+                {
+                    lat = spoofCoordinateY;
+                    lon = spoofCoordinateX;
+                }
+                else
+                {
+                    lat = Input.location.lastData.latitude * Mathf.PI / 180;
+                    lon = Input.location.lastData.longitude * Mathf.PI / 180;
+                }
+
+                Vector2 locationXY = MercatorUtil.FromGlobeToXY(lat, lon);
+
+                OnLocationDataIn(locationXY);
+
+                LogUtil.Write("Location data event");
             }
             else
                 LogUtil.Write("Nothing subscribed to location data event");
 
-            yield return new WaitForSeconds(5);
+            yield return new WaitForSeconds(locationUpdateWait);
         }
 
         Input.location.Stop();
